@@ -61,7 +61,7 @@ _harness_version: "4.3.3"
 
 | Task | 내용 | DoD | Depends | Status |
 |---|---|---|---|---|
-| T4 | `0001_schema.sql` `[lane:gate][tdd:required]` — enum 3종(`weather_state` 9값/`vote_kind`/`flag_reason`), 테이블 8개(profiles, weather_state_lifespans, reports, report_votes, report_flags, watched_areas, alert_sends, kma_observations), 인덱스 5종, `auth.users`→`profiles` 트리거. postgis·btree_gist·pg_cron 은 `extensions` 스키마 | `supabase db reset` 무에러 + `weather_state_lifespans` 정확히 9행 | T3 | `cc:todo` |
+| T4 | `0001_schema.sql` `[lane:gate][tdd:required]` — enum 3종(`weather_state` 9값/`vote_kind`/`flag_reason`), 테이블 8개(profiles, weather_state_lifespans, reports, report_votes, report_flags, watched_areas, alert_sends, kma_observations), 인덱스 5종, `auth.users`→`profiles` 트리거. postgis·btree_gist·pg_cron 은 `extensions` 스키마 | `supabase db reset` 무에러 + `weather_state_lifespans` 정확히 9행 | T3 | `cc:done` |
 | T5 | `0002_functions.sql` `[tdd:required]` — `snap_to_cell`(EPSG:5179, 100m 격자 중심), `kma_grid`(LCC 변환), `report_lifespan` + `tests/functions.test.sql` | pgTAP 5건 pass. 서울시청(37.5665,126.9780) → `nx=60,ny=127`, 스냅 오차 ≤71m | T4 | `cc:todo` |
 | T6 | `0003_rpc.sql` `[tdd:required]` — `submit_report`(검사 7단계 + 같은 격자·같은 상태 재제보 시 수명 연장), `nearby_summary`(적응형 반경 2/4/6/10km, `used_radius_m` 반환) + `tests/submit_report.test.sql` | pgTAP 10건 pass. `TOO_SOON`·`DAILY_LIMIT`·`LOW_ACCURACY`·`MOCK_LOCATION`·`IMPOSSIBLE_SPEED`·`BANNED` 각각 raise + 재제보 시 행 수 불변 | T5 | `cc:todo` |
 | T7 | `0004_grants.sql` `[lane:gate][tdd:required]` — 전 테이블 RLS 활성화(정책 없음 = 전면 거부), anon/authenticated 권한 회수, `alter default privileges`, RPC 에만 execute + `tests/rls.test.sql` | 테이블 직접 select/insert → `42501`, RPC → 통과, `nearby_summary` 반환 타입에 `raw_point` 없음 | T6 | `cc:todo` |
@@ -76,7 +76,11 @@ _harness_version: "4.3.3"
 - 제보 전후 카운트를 CTE 하나에 넣지 말 것. CTE 는 같은 스냅샷을 보므로 "제보 후" 값이 제보를 반영하지 않는다 → 임시 테이블로 문장 분리
 - `count(*)` 는 `bigint`. pgTAP `is()` 에 넘기려면 `::int` 캐스팅
 - pgTAP LIKE 비교 함수는 `alike`/`unalike`. `like`/`unlike` 는 없다
-- 로컬 스택(T3 확인) 기준 `postgis 3.3.7` 과 `btree_gist 1.7` 은 **이미 `extensions` 스키마에 설치돼 있다**. `pg_cron 1.6.4` 는 available 목록에만 있고 미설치 → T4 에서 `create extension ... with schema extensions` 가 실제로 필요한 것은 pg_cron 쪽이다
+- 로컬 스택(T3 확인) 기준 `postgis 3.3.7` 과 `btree_gist 1.7` 은 **이미 `extensions` 스키마에 설치돼 있다**. `pg_cron 1.6.4` 는 available 목록에만 있고 미설치
+- (T4 확인) `pg_cron` 에 `with schema extensions` 를 붙여도 **무시된다**. 컨트롤 파일이 스키마를 `pg_catalog` 로 고정하고 있어서 에러 없이 `pg_catalog` 에 깔린다 → 계획서의 "postgis·btree_gist·pg_cron 은 extensions 스키마"는 pg_cron 에 대해서만 성립하지 않는다
+- pgTAP 은 **마이그레이션이 아니라 `supabase/seed.sql`** 에 둔다. 마이그레이션에 넣으면 `db push` 로 원격 프로덕션에도 테스트 도구가 영구 설치된다. seed 는 로컬 `db reset` 에서만 돈다 → T24 에서 원격 pgTAP 은 따로 깔아야 한다
+- pgTAP 테스트 파일 위치는 **`supabase/tests/`**. `supabase test db` 의 기본 탐색 경로이고, `scripts/tdd-gate.sh` 도 이 경로를 구현 파일에서 제외한다(계획서 본문의 `tests/functions.test.sql` 표기와 다름 — T5 부터 `supabase/tests/` 로 읽는다)
+- 로컬 DB 에 **마이그레이션 없이 손으로 만든 잔여 객체**(profiles/reports/weather_state_lifespans)가 남아 있었다. 그대로 테스트하면 RED 가 가짜로 통과한다 → 검증 전에 `supabase db reset` 으로 바닥을 먼저 맞춘다
 
 ---
 
