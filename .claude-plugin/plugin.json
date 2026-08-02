@@ -1,0 +1,8 @@
+{
+  "name": "weathercaster",
+  "version": "1.0.0",
+  "description": "유저 날씨 제보와 기상청 실황을 나란히 비교하는 Expo/React Native 앱",
+  "skills": [
+    "./skills/"
+  ]
+}
