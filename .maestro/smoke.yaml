@@ -1,0 +1,18 @@
+# Smoke flow: proves Maestro can both read the running app and tap it.
+#
+#   bash scripts/sim-e2e.sh
+#
+# Runs against the project loaded in Expo Go, so appId is Expo Go's bundle id rather than
+# com.weathercaster.app — that one only exists once there is a development build (T17).
+# The gear is Expo Go's floating dev-menu button; it has no label, so it is the one step
+# addressed by position. Everything after it is addressed by text.
+appId: host.exp.Exponent
+---
+- launchApp
+- openLink: ${EXPO_URL}
+- assertVisible: "Open up App.tsx to start working on your app!"
+- tapOn:
+    point: "88%,9%"
+- assertVisible: "Reload"
+- tapOn: "Reload"
+- assertVisible: "Open up App.tsx to start working on your app!"
