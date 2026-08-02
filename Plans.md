@@ -39,7 +39,7 @@ _harness_version: "4.3.3"
 | Task | 내용 | DoD | Depends | Status |
 |---|---|---|---|---|
 | T1 | 앱 스캐폴드 `[lane:fast][tdd:skip:scaffold]` — Expo `blank-typescript`(expo-router 없음), deps `@supabase/supabase-js`·`expo-location`·`expo-secure-store`·`react-native-url-polyfill`, `app.json`(앱 이름·번들 ID·한국어 위치 권한 문구), `.gitignore` | 실기기/시뮬레이터에서 앱이 뜬다 | - | `cc:done` |
-| T2 | 검사 도구 `[lane:fast][tdd:skip:tooling]` — eslint(expo)+prettier, `jest-expo`+`@testing-library/react-native`, npm scripts `lint`/`test` | `npm run lint` 와 `npm test` 둘 다 exit 0 | T1 | `cc:todo` |
+| T2 | 검사 도구 `[lane:fast][tdd:skip:tooling]` — eslint(expo)+prettier, `jest-expo`+`@testing-library/react-native`, npm scripts `lint`/`test` | `npm run lint` 와 `npm test` 둘 다 exit 0 | T1 | `cc:done` |
 | T3 | 로컬 Supabase `[lane:fast][tdd:skip:tooling]` — `supabase` CLI devDep, `supabase init` / `supabase start` | `supabase status` 가 주소 목록 출력 | T1 | `cc:todo` |
 
 **중간 상태**
@@ -47,7 +47,12 @@ _harness_version: "4.3.3"
 - T2 끝 → 검사 명령이 돈다. 검사할 코드는 아직 없음(빈 통과)
 - T3 끝 → 로컬 DB 접속 가능. 테이블 0개. **Docker 없으면 여기서 막힌다**
 
-**함정(겪음)**: `create-expo-app` 은 폴더에 `CONTEXT.md` 가 있으면 실행을 거부한다 → 임시 디렉토리에 만든 뒤 앱 파일만 복사. 템플릿이 딸려 만드는 `CLAUDE.md`/`AGENTS.md`/`LICENSE`/`.git` 은 **복사 금지**(하네스 `CLAUDE.md` 를 덮어쓴다).
+**함정(겪음)**
+- `create-expo-app` 은 폴더에 `CONTEXT.md` 가 있으면 실행을 거부한다 → 임시 디렉토리에 만든 뒤 앱 파일만 복사. 템플릿이 딸려 만드는 `CLAUDE.md`/`AGENTS.md`/`LICENSE`/`.git` 은 **복사 금지**(하네스 `CLAUDE.md` 를 덮어쓴다)
+- `@testing-library/react-native` 14 의 `render` 는 **Promise 를 돌려준다**. `await` 없이 쓰면 `toJSON is not a function`, `screen` 은 "render function has not been called". T10/T11 테스트는 전부 `const view = await render(<X />)` 형태로 쓴다 (`react-test-renderer` 는 더 이상 안 쓰고 peer 가 `test-renderer` 로 바뀌었다)
+- `npx expo install <pkg> -- --save-dev` 는 devDependency 로 안 들어간다. `dependencies` 에 박히므로 손으로 옮겨야 한다
+- eslint 기본 출력은 `no-unused-vars` 를 **warning** 으로 낸다 → 그냥 두면 `npm run lint` 가 항상 exit 0. `--max-warnings=0` 이 있어야 게이트가 된다
+- TS 6 + `expo/tsconfig.base` 조합은 `@types/jest` 를 자동으로 안 물어온다 → `tsconfig.json` 에 `"types": ["jest"]` 필요
 
 ---
 

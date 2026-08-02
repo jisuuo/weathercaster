@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+out/
+coverage/
+package-lock.json
+
+# 하네스/플러그인 상태 파일 — 사람이 손대는 파일이 아니다
+.claude/
+.claude-plugin/
+.harness/
+.maestro/
+
+# 문서는 손으로 맞춘 계약서다(Plans.md 표, CONTEXT.md 용어). prettier 가 표를 다시 짜면 diff 만 커진다
+*.md
