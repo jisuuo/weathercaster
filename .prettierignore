@@ -5,6 +5,10 @@ out/
 coverage/
 package-lock.json
 
+# `supabase start` 런타임 산물
+supabase/.temp/
+supabase/.branches/
+
 # 하네스/플러그인 상태 파일 — 사람이 손대는 파일이 아니다
 .claude/
 .claude-plugin/

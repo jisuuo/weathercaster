@@ -18,7 +18,7 @@ _harness_version: "4.3.3"
 
 설계 문서는 완성돼 있고 **코드는 0줄**이다. `package.json` / `App.tsx` / `app.json` / `assets/` / `supabase/` 전부 없으며 git 에도 없어 복구 불가. 따라서 이 계획은 백지 설계가 아니라 **`docs/data-model.md` 의 SQL 을 옮겨 적고 테스트를 붙이는 일**에 가깝다.
 
-미확인: 이 컴퓨터의 Docker 설치 여부(로컬 Supabase 전제). 모른다 ≠ 없다. T3 에서 확인된다.
+확인됨(T3, 2026-08-02): Docker Desktop 29.5.3 동작 중. 로컬 Supabase 전제 성립 — Phase 1 은 막히지 않는다.
 
 외부 계정/키(Supabase·기상청·네이버) 전부 미보유 → T12·T17·T24 에 발급 태스크로 포함.
 
@@ -40,12 +40,12 @@ _harness_version: "4.3.3"
 |---|---|---|---|---|
 | T1 | 앱 스캐폴드 `[lane:fast][tdd:skip:scaffold]` — Expo `blank-typescript`(expo-router 없음), deps `@supabase/supabase-js`·`expo-location`·`expo-secure-store`·`react-native-url-polyfill`, `app.json`(앱 이름·번들 ID·한국어 위치 권한 문구), `.gitignore` | 실기기/시뮬레이터에서 앱이 뜬다 | - | `cc:done` |
 | T2 | 검사 도구 `[lane:fast][tdd:skip:tooling]` — eslint(expo)+prettier, `jest-expo`+`@testing-library/react-native`, npm scripts `lint`/`test` | `npm run lint` 와 `npm test` 둘 다 exit 0 | T1 | `cc:done` |
-| T3 | 로컬 Supabase `[lane:fast][tdd:skip:tooling]` — `supabase` CLI devDep, `supabase init` / `supabase start` | `supabase status` 가 주소 목록 출력 | T1 | `cc:todo` |
+| T3 | 로컬 Supabase `[lane:fast][tdd:skip:tooling]` — `supabase` CLI devDep, `supabase init` / `supabase start` | `supabase status` 가 주소 목록 출력 | T1 | `cc:done` |
 
 **중간 상태**
 - T1 끝 → 흰 화면 앱이 뜬다. 제보·지도·서버 연결 전부 안 됨
 - T2 끝 → 검사 명령이 돈다. 검사할 코드는 아직 없음(빈 통과)
-- T3 끝 → 로컬 DB 접속 가능. 테이블 0개. **Docker 없으면 여기서 막힌다**
+- T3 끝 → 로컬 DB 접속 가능(PostgreSQL 17.6, `127.0.0.1:54322`). 테이블 0개, 마이그레이션 0개. 앱은 아직 서버를 안 부른다
 
 **함정(겪음)**
 - `create-expo-app` 은 폴더에 `CONTEXT.md` 가 있으면 실행을 거부한다 → 임시 디렉토리에 만든 뒤 앱 파일만 복사. 템플릿이 딸려 만드는 `CLAUDE.md`/`AGENTS.md`/`LICENSE`/`.git` 은 **복사 금지**(하네스 `CLAUDE.md` 를 덮어쓴다)
@@ -53,6 +53,7 @@ _harness_version: "4.3.3"
 - `npx expo install <pkg> -- --save-dev` 는 devDependency 로 안 들어간다. `dependencies` 에 박히므로 손으로 옮겨야 한다
 - eslint 기본 출력은 `no-unused-vars` 를 **warning** 으로 낸다 → 그냥 두면 `npm run lint` 가 항상 exit 0. `--max-warnings=0` 이 있어야 게이트가 된다
 - TS 6 + `expo/tsconfig.base` 조합은 `@types/jest` 를 자동으로 안 물어온다 → `tsconfig.json` 에 `"types": ["jest"]` 필요
+- `supabase start` 는 `supabase/.temp/` 에 edge runtime 소스(`index.ts`)를 풀어놓는다. git 은 `supabase/.gitignore` 로 무시하지만 **eslint flat config 와 prettier 는 `.gitignore` 를 안 읽는다** → 그냥 두면 `npm run lint` 가 남의 코드에서 23 error 로 죽는다. `eslint.config.js` 의 `ignores` 와 `.prettierignore` 양쪽에 넣어야 한다
 
 ---
 
@@ -75,6 +76,7 @@ _harness_version: "4.3.3"
 - 제보 전후 카운트를 CTE 하나에 넣지 말 것. CTE 는 같은 스냅샷을 보므로 "제보 후" 값이 제보를 반영하지 않는다 → 임시 테이블로 문장 분리
 - `count(*)` 는 `bigint`. pgTAP `is()` 에 넘기려면 `::int` 캐스팅
 - pgTAP LIKE 비교 함수는 `alike`/`unalike`. `like`/`unlike` 는 없다
+- 로컬 스택(T3 확인) 기준 `postgis 3.3.7` 과 `btree_gist 1.7` 은 **이미 `extensions` 스키마에 설치돼 있다**. `pg_cron 1.6.4` 는 available 목록에만 있고 미설치 → T4 에서 `create extension ... with schema extensions` 가 실제로 필요한 것은 pg_cron 쪽이다
 
 ---
 
