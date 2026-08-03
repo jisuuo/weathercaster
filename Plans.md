@@ -6,7 +6,7 @@ _harness_version: "4.3.3"
 # Plans.md - Task Tracking
 
 > **Project**: weathercaster
-> **Last updated**: 2026-08-02
+> **Last updated**: 2026-08-03
 > **Updated by**: Claude Code
 > **Purpose**: 유저 날씨 제보와 기상청 실황을 나란히 놓아 "공식 관측이 놓친 지금 여기 날씨"를 드러내는 앱의 MVP를 완성한다.
 
@@ -62,7 +62,7 @@ _harness_version: "4.3.3"
 | Task | 내용 | DoD | Depends | Status |
 |---|---|---|---|---|
 | T4 | `0001_schema.sql` `[lane:gate][tdd:required]` — enum 3종(`weather_state` 9값/`vote_kind`/`flag_reason`), 테이블 8개(profiles, weather_state_lifespans, reports, report_votes, report_flags, watched_areas, alert_sends, kma_observations), 인덱스 5종, `auth.users`→`profiles` 트리거. postgis·btree_gist·pg_cron 은 `extensions` 스키마 | `supabase db reset` 무에러 + `weather_state_lifespans` 정확히 9행 | T3 | `cc:done` |
-| T5 | `0002_functions.sql` `[tdd:required]` — `snap_to_cell`(EPSG:5179, 100m 격자 중심), `kma_grid`(LCC 변환), `report_lifespan` + `tests/functions.test.sql` | pgTAP 5건 pass. 서울시청(37.5665,126.9780) → `nx=60,ny=127`, 스냅 오차 ≤71m | T4 | `cc:todo` |
+| T5 | `0002_functions.sql` `[tdd:required]` — `snap_to_cell`(EPSG:5179, 100m 격자 중심), `kma_grid`(LCC 변환), `report_lifespan` + `tests/functions.test.sql` | pgTAP 5건 pass. 서울시청(37.5665,126.9780) → `nx=60,ny=127`, 스냅 오차 ≤71m | T4 | `cc:done` |
 | T6 | `0003_rpc.sql` `[tdd:required]` — `submit_report`(검사 7단계 + 같은 격자·같은 상태 재제보 시 수명 연장), `nearby_summary`(적응형 반경 2/4/6/10km, `used_radius_m` 반환) + `tests/submit_report.test.sql` | pgTAP 10건 pass. `TOO_SOON`·`DAILY_LIMIT`·`LOW_ACCURACY`·`MOCK_LOCATION`·`IMPOSSIBLE_SPEED`·`BANNED` 각각 raise + 재제보 시 행 수 불변 | T5 | `cc:todo` |
 | T7 | `0004_grants.sql` `[lane:gate][tdd:required]` — 전 테이블 RLS 활성화(정책 없음 = 전면 거부), anon/authenticated 권한 회수, `alter default privileges`, RPC 에만 execute + `tests/rls.test.sql` | 테이블 직접 select/insert → `42501`, RPC → 통과, `nearby_summary` 반환 타입에 `raw_point` 없음 | T6 | `cc:todo` |
 
@@ -81,6 +81,8 @@ _harness_version: "4.3.3"
 - pgTAP 은 **마이그레이션이 아니라 `supabase/seed.sql`** 에 둔다. 마이그레이션에 넣으면 `db push` 로 원격 프로덕션에도 테스트 도구가 영구 설치된다. seed 는 로컬 `db reset` 에서만 돈다 → T24 에서 원격 pgTAP 은 따로 깔아야 한다
 - pgTAP 테스트 파일 위치는 **`supabase/tests/`**. `supabase test db` 의 기본 탐색 경로이고, `scripts/tdd-gate.sh` 도 이 경로를 구현 파일에서 제외한다(계획서 본문의 `tests/functions.test.sql` 표기와 다름 — T5 부터 `supabase/tests/` 로 읽는다)
 - 로컬 DB 에 **마이그레이션 없이 손으로 만든 잔여 객체**(profiles/reports/weather_state_lifespans)가 남아 있었다. 그대로 테스트하면 RED 가 가짜로 통과한다 → 검증 전에 `supabase db reset` 으로 바닥을 먼저 맞춘다
+- (T5 확인) plpgsql 함수는 `check_function_bodies` 때문에 **CREATE 시점에 자기 `search_path` 로 타입을 해석**한다. `docs/data-model.md` 의 `submit_report` 가 쓴 `set search_path = public, pg_temp` 로는 `geography`(= `extensions` 스키마) 를 못 찾아 **함수 생성 자체가 `type "geography" does not exist` 로 실패**한다 → T6 은 `set search_path = public, extensions, pg_temp` 로 적는다. T5 함수들은 SET 절이 없어 호출자 `search_path` 를 따르므로 그것만으로 해결된다
+- `supabase start` 는 Docker 가 꺼져 있으면 `LegacyStatusDbInspectError ... dial unix .../docker.sock` 로 죽는다. 세션 시작 시 `docker info` 로 먼저 확인
 
 ---
 
@@ -293,6 +295,6 @@ T17(지금 신청) ───────┴─ T18 ─ T19 ───────
 
 ## Last Update
 
-- **Updated at**: 2026-08-02
+- **Updated at**: 2026-08-03
 - **Last session owner**: Claude Code
 - **Branch**: main
